@@ -69,6 +69,7 @@ if __name__ == "__main__":
                             "You should use the `calc_gsm8k_reward` tool after step by step solving the question, "
                             "before generate final answer at least once and refine your answer if necessary. "
                             "Put your final answer in the format of `#### <answer>`."
+                            "You should call the `check_answer_format` tool to check if your answer is in the correct format. After outputting the final answer."
                         ),
                     },
                     {

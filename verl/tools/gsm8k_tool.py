@@ -22,6 +22,7 @@ from verl.utils.reward_score import gsm8k
 
 from .base_tool import BaseTool
 from .schemas import OpenAIFunctionToolSchema
+import re
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
@@ -102,3 +103,38 @@ class Gsm8kTool(BaseTool):
 
     async def release(self, instance_id: str, **kwargs) -> None:
         del self._instance_dict[instance_id]
+
+
+class FormatCheckerTool(BaseTool):
+    """Return 1.0 reward if the answer string is '#### <digits>', else 0.0."""
+
+    def __init__(self, config: dict, tool_schema: OpenAIFunctionToolSchema):
+        super().__init__(config, tool_schema)
+        self._instance_dict: dict[str, dict[str, Any]] = {}
+
+    # ----- BaseTool API -----
+    def get_openai_tool_schema(self) -> OpenAIFunctionToolSchema:
+        return self.tool_schema
+
+    async def create(self, instance_id: Optional[str] = None, **kwargs) -> str:
+        if instance_id is None:
+            instance_id = str(uuid4())
+        self._instance_dict[instance_id] = {"reward": 0.0}
+        return instance_id
+
+    async def execute(self, instance_id: str, parameters: dict[str, Any], **kwargs) -> Tuple[str, float, dict]:
+        answer: str = str(parameters.get("answer", ""))
+        ok = bool(re.fullmatch(r"#### \d+", answer))
+
+        reward = 1.0 if ok else 0.0
+        tool_reward = 0.0 if reward > self._instance_dict[instance_id]["reward"] else -0.05
+        self._instance_dict[instance_id]["reward"] = reward
+
+        msg = "Format OK" if ok else "Invalid format: must be '#### ' followed by digits"
+        return msg, tool_reward, {}
+
+    async def calc_reward(self, instance_id: str, **kwargs) -> float:
+        return self._instance_dict[instance_id]["reward"]
+
+    async def release(self, instance_id: str, **kwargs) -> None:
+        self._instance_dict.pop(instance_id, None)

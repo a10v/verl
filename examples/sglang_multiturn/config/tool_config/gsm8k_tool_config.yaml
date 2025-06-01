@@ -13,3 +13,19 @@ tools:
               type: "string"
               description: "The model's answer to the GSM8K math problem, must be a digits"
           required: ["answer"]
+  - class_name: "verl.tools.gsm8k_tool.FormatCheckerTool"
+    config: {}
+    tool_schema:
+      type: "function"
+      function:
+        name: "check_answer_format"
+        description: >
+          Validate that the model's GSM8K response string starts with '#### ' followed by one or more digits (1.0 if parsed answer is correct, 0.0 if parsed answer is incorrect or not correctly parsed).
+        parameters:
+          type: "object"
+          properties:
+            answer:
+              type: "string"
+              description: "The response string to validate."
+          required: ["answer"]
+
